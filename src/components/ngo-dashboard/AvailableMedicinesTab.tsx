@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { getUser } from "@/utils/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,7 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Check } from "lucide-react";
+import { Check, Search } from "lucide-react";
 
 interface DonatedMedicine {
   id: string;
@@ -27,6 +28,7 @@ interface DonatedMedicine {
   ingredients: string | null;
   image_url: string | null;
   donor_name?: string;
+  similarity?: number;
 }
 
 interface AvailableMedicinesTabProps {
@@ -37,10 +39,23 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
   const [medicines, setMedicines] = useState<DonatedMedicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [acceptingIds, setAcceptingIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredMedicines, setFilteredMedicines] = useState<DonatedMedicine[]>([]);
+  const [similarMedicines, setSimilarMedicines] = useState<DonatedMedicine[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     fetchMedicines();
   }, []);
+
+  useEffect(() => {
+    if (searchQuery) {
+      performSearch();
+    } else {
+      setFilteredMedicines(medicines);
+      setSimilarMedicines([]);
+    }
+  }, [searchQuery, medicines]);
 
   const fetchMedicines = async () => {
     setLoading(true);
@@ -75,6 +90,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       }
       
       setMedicines(medicinesList);
+      setFilteredMedicines(medicinesList);
     } catch (error) {
       console.error("Error fetching available medicines:", error);
       toast({
@@ -84,6 +100,77 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculateIngredientSimilarity = (ingredients1: string | null, ingredients2: string | null): number => {
+    if (!ingredients1 || !ingredients2) {
+      return 0;
+    }
+
+    // Normalize ingredients by converting to lowercase and splitting by commas
+    const ingredientsArray1 = ingredients1.toLowerCase().split(',').map(i => i.trim());
+    const ingredientsArray2 = ingredients2.toLowerCase().split(',').map(i => i.trim());
+
+    // Count matching ingredients
+    const matchingIngredients = ingredientsArray1.filter(ingredient => 
+      ingredientsArray2.some(i => i.includes(ingredient) || ingredient.includes(i))
+    );
+
+    // Calculate similarity percentage
+    const totalUniqueIngredients = new Set([...ingredientsArray1, ...ingredientsArray2]).size;
+    return (matchingIngredients.length / totalUniqueIngredients) * 100;
+  };
+
+  const performSearch = () => {
+    setIsSearching(true);
+    
+    try {
+      // Filter medicines by name match
+      const searchTermLower = searchQuery.toLowerCase();
+      const matched = medicines.filter(medicine => 
+        medicine.medicine_name?.toLowerCase().includes(searchTermLower)
+      );
+      
+      setFilteredMedicines(matched);
+      
+      // Find similar medicines based on ingredients if we have a match
+      if (matched.length > 0) {
+        const targetMedicine = matched[0]; // Use the first match as reference
+        
+        if (targetMedicine.ingredients) {
+          const similar: DonatedMedicine[] = [];
+          
+          // Compare ingredients with all other medicines
+          for (const medicine of medicines) {
+            if (medicine.id !== targetMedicine.id) {
+              const similarity = calculateIngredientSimilarity(
+                targetMedicine.ingredients, 
+                medicine.ingredients
+              );
+              
+              // If similarity is between 70-80%, add to similar medicines
+              if (similarity >= 70 && similarity <= 80) {
+                similar.push({
+                  ...medicine,
+                  similarity: Math.round(similarity)
+                });
+              }
+            }
+          }
+          
+          // Sort by similarity (highest first)
+          similar.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+          
+          setSimilarMedicines(similar);
+        }
+      } else {
+        setSimilarMedicines([]);
+      }
+    } catch (error) {
+      console.error("Error during search:", error);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -141,8 +228,13 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
         description: "You have successfully accepted this medicine donation.",
       });
       
-      // Remove the accepted medicine from the list
-      setMedicines(prev => prev.filter(medicine => medicine.id !== medicineId));
+      // Remove the accepted medicine from all lists
+      const removeFromList = (list: DonatedMedicine[]) => 
+        list.filter(medicine => medicine.id !== medicineId);
+      
+      setMedicines(removeFromList);
+      setFilteredMedicines(removeFromList(filteredMedicines));
+      setSimilarMedicines(removeFromList(similarMedicines));
     } catch (error) {
       console.error("Error accepting medicine:", error);
       toast({
@@ -160,84 +252,133 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
     }
   };
 
+  const renderMedicineTable = (medicines: DonatedMedicine[], showSimilarity = false) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Medicine Name</TableHead>
+          <TableHead>Quantity</TableHead>
+          <TableHead>Expiry Date</TableHead>
+          <TableHead>Donor</TableHead>
+          <TableHead>Date Added</TableHead>
+          {showSimilarity && <TableHead>Similarity</TableHead>}
+          <TableHead>Status</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {medicines.map((medicine) => (
+          <TableRow key={medicine.id}>
+            <TableCell>{medicine.medicine_name || 'N/A'}</TableCell>
+            <TableCell>{medicine.quantity || 'N/A'}</TableCell>
+            <TableCell>
+              {medicine.expiry_date 
+                ? new Date(medicine.expiry_date).toLocaleDateString() 
+                : 'N/A'}
+            </TableCell>
+            <TableCell>{medicine.donor_name || 'Unknown'}</TableCell>
+            <TableCell>
+              {medicine.date_added 
+                ? new Date(medicine.date_added).toLocaleDateString() 
+                : 'N/A'}
+            </TableCell>
+            {showSimilarity && (
+              <TableCell>
+                <span className="text-amber-600 font-medium">{medicine.similarity}% match</span>
+              </TableCell>
+            )}
+            <TableCell>
+              <span
+                className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  medicine.status === "uploaded"
+                    ? "bg-green-100 text-green-800"
+                    : medicine.status === "rejected"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {medicine.status 
+                  ? medicine.status.charAt(0).toUpperCase() + medicine.status.slice(1) 
+                  : 'Unknown'}
+              </span>
+            </TableCell>
+            <TableCell>
+              <Button 
+                size="sm" 
+                className="bg-medishare-blue hover:bg-medishare-blue/90"
+                onClick={() => handleAcceptMedicine(medicine.id)}
+                disabled={acceptingIds.has(medicine.id) || medicine.status === 'rejected'}
+              >
+                {acceptingIds.has(medicine.id) ? (
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
+                ) : (
+                  <Check className="h-4 w-4 mr-1" />
+                )}
+                Accept
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Available Medicines</CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search for medicines..."
+                className="pl-9 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medishare-blue"></div>
           </div>
-        ) : medicines.length === 0 ? (
+        ) : isSearching ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-medishare-blue mr-2"></div>
+            <p>Searching medicines...</p>
+          </div>
+        ) : filteredMedicines.length === 0 ? (
           <div className="text-center py-8">
-            <p>No medicines available at this time</p>
+            {searchQuery ? (
+              <p>No medicines found matching "{searchQuery}"</p>
+            ) : (
+              <p>No medicines available at this time</p>
+            )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Medicine Name</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Expiry Date</TableHead>
-                  <TableHead>Donor</TableHead>
-                  <TableHead>Date Added</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {medicines.map((medicine) => (
-                  <TableRow key={medicine.id}>
-                    <TableCell>{medicine.medicine_name || 'N/A'}</TableCell>
-                    <TableCell>{medicine.quantity || 'N/A'}</TableCell>
-                    <TableCell>
-                      {medicine.expiry_date 
-                        ? new Date(medicine.expiry_date).toLocaleDateString() 
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>{medicine.donor_name || 'Unknown'}</TableCell>
-                    <TableCell>
-                      {medicine.date_added 
-                        ? new Date(medicine.date_added).toLocaleDateString() 
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          medicine.status === "uploaded"
-                            ? "bg-green-100 text-green-800"
-                            : medicine.status === "rejected"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {medicine.status 
-                          ? medicine.status.charAt(0).toUpperCase() + medicine.status.slice(1) 
-                          : 'Unknown'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        size="sm" 
-                        className="bg-medishare-blue hover:bg-medishare-blue/90"
-                        onClick={() => handleAcceptMedicine(medicine.id)}
-                        disabled={acceptingIds.has(medicine.id) || medicine.status === 'rejected'}
-                      >
-                        {acceptingIds.has(medicine.id) ? (
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
-                        ) : (
-                          <Check className="h-4 w-4 mr-1" />
-                        )}
-                        Accept
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="space-y-8">
+            <div className="overflow-x-auto">
+              <h3 className="text-lg font-medium mb-4">
+                {searchQuery ? `Search Results for "${searchQuery}"` : "Available Medicines"}
+              </h3>
+              {renderMedicineTable(filteredMedicines)}
+            </div>
+
+            {similarMedicines.length > 0 && (
+              <div className="overflow-x-auto">
+                <h3 className="text-lg font-medium mb-2">Similar Medicines (70-80% ingredient match)</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  These medicines have similar ingredients to {filteredMedicines[0]?.medicine_name}
+                </p>
+                {renderMedicineTable(similarMedicines, true)}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
