@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,8 +59,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
   const fetchMedicines = async () => {
     setLoading(true);
     try {
-      // Fetch medicines that are uploaded and not assigned to any NGO
-      // And not rejected by admin
       const { data, error } = await supabase
         .from('donated_meds')
         .select('*')
@@ -70,13 +67,11 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       
       if (error) throw error;
       
-      // Convert all medicines to have string IDs for consistency
       let medicinesList: DonatedMedicine[] = data ? data.map(med => ({
         ...med,
         id: med.id.toString()
       })) : [];
       
-      // Fetch donor information for each medicine
       for (let i = 0; i < medicinesList.length; i++) {
         const { data: donorData, error: donorError } = await supabase
           .from('donors')
@@ -108,16 +103,13 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       return 0;
     }
 
-    // Normalize ingredients by converting to lowercase and splitting by commas
     const ingredientsArray1 = ingredients1.toLowerCase().split(',').map(i => i.trim());
     const ingredientsArray2 = ingredients2.toLowerCase().split(',').map(i => i.trim());
 
-    // Count matching ingredients
     const matchingIngredients = ingredientsArray1.filter(ingredient => 
       ingredientsArray2.some(i => i.includes(ingredient) || ingredient.includes(i))
     );
 
-    // Calculate similarity percentage
     const totalUniqueIngredients = new Set([...ingredientsArray1, ...ingredientsArray2]).size;
     return (matchingIngredients.length / totalUniqueIngredients) * 100;
   };
@@ -126,7 +118,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
     setIsSearching(true);
     
     try {
-      // Filter medicines by name match
       const searchTermLower = searchQuery.toLowerCase();
       const matched = medicines.filter(medicine => 
         medicine.medicine_name?.toLowerCase().includes(searchTermLower)
@@ -134,14 +125,12 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       
       setFilteredMedicines(matched);
       
-      // Find similar medicines based on ingredients if we have a match
       if (matched.length > 0) {
-        const targetMedicine = matched[0]; // Use the first match as reference
+        const targetMedicine = matched[0];
         
         if (targetMedicine.ingredients) {
           const similar: DonatedMedicine[] = [];
           
-          // Compare ingredients with all other medicines
           for (const medicine of medicines) {
             if (medicine.id !== targetMedicine.id) {
               const similarity = calculateIngredientSimilarity(
@@ -149,7 +138,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                 medicine.ingredients
               );
               
-              // If similarity is between 70-80%, add to similar medicines
               if (similarity >= 70 && similarity <= 80) {
                 similar.push({
                   ...medicine,
@@ -159,7 +147,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
             }
           }
           
-          // Sort by similarity (highest first)
           similar.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
           
           setSimilarMedicines(similar);
@@ -184,11 +171,9 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       return;
     }
     
-    // Add to accepting state to show loading indicator
     setAcceptingIds(prev => new Set(prev).add(medicineId));
     
     try {
-      // First, check if the medicine has been rejected by an admin
       const { data: medicineData, error: checkError } = await supabase
         .from('donated_meds')
         .select('status')
@@ -199,7 +184,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
         throw checkError;
       }
       
-      // If medicine is rejected, prevent accepting it
       if (medicineData && medicineData.status === 'rejected') {
         toast({
           title: "Cannot Accept",
@@ -209,7 +193,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
         return;
       }
       
-      // Use 'approved' instead of 'assigned' to match the database constraint
       const { error } = await supabase
         .from('donated_meds')
         .update({
@@ -228,7 +211,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
         description: "You have successfully accepted this medicine donation.",
       });
       
-      // Remove the accepted medicine from all lists
       const removeFromList = (list: DonatedMedicine[]) => 
         list.filter(medicine => medicine.id !== medicineId);
       
@@ -243,7 +225,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
         variant: "destructive",
       });
     } finally {
-      // Remove from accepting state
       setAcceptingIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(medicineId);
@@ -252,7 +233,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
     }
   };
 
-  const renderMedicineTable = (medicines: DonatedMedicine[], showSimilarity = false) => (
+  const renderMedicineTable = (medicines: DonatedMedicine[], showSimilarity = false, isSimilarMedicines = false) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -268,7 +249,10 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       </TableHeader>
       <TableBody>
         {medicines.map((medicine) => (
-          <TableRow key={medicine.id}>
+          <TableRow 
+            key={medicine.id} 
+            className={isSimilarMedicines ? "bg-orange-50 hover:bg-orange-100" : ""}
+          >
             <TableCell>{medicine.medicine_name || 'N/A'}</TableCell>
             <TableCell>{medicine.quantity || 'N/A'}</TableCell>
             <TableCell>
@@ -376,7 +360,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                 <p className="text-sm text-gray-500 mb-4">
                   These medicines have similar ingredients to {filteredMedicines[0]?.medicine_name}
                 </p>
-                {renderMedicineTable(similarMedicines, true)}
+                {renderMedicineTable(similarMedicines, true, true)}
               </div>
             )}
           </div>
