@@ -31,51 +31,61 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileNavOpen, setMobileNavOpen }) =>
       path: "/ngo-dashboard",
       icon: <Home className="h-5 w-5" />,
       exact: true,
+      externalLink: false,
     },
     {
       name: "Available Medicines",
       path: "/ngo-dashboard/available-medicines",
       icon: <Package className="h-5 w-5" />,
+      externalLink: false,
     },
     {
       name: "Medicine Requests",
       path: "/ngo-dashboard/medicine-requests",
       icon: <FileText className="h-5 w-5" />,
+      externalLink: false,
     },
     {
       name: "Donors Near Me",
-      path: "/ngo-dashboard/donors-near-me",
+      path: "https://lovable.dev/projects/e4eed655-9d63-4c3a-8e6f-f12284e26939",
       icon: <Map className="h-5 w-5" />,
+      externalLink: true,
     },
     {
       name: "Impact Reports",
       path: "/ngo-dashboard/impact",
       icon: <Heart className="h-5 w-5" />,
+      externalLink: false,
     },
     {
       name: "Analytics",
       path: "/ngo-dashboard/analytics",
       icon: <PieChart className="h-5 w-5" />,
+      externalLink: false,
     },
     {
       name: "Beneficiaries",
       path: "/ngo-dashboard/beneficiaries",
       icon: <Users className="h-5 w-5" />,
+      externalLink: false,
     },
     {
       name: "Notifications",
       path: "/ngo-dashboard/notifications",
       icon: <Bell className="h-5 w-5" />,
+      externalLink: false,
     },
     {
       name: "Profile",
       path: "/ngo-dashboard/profile",
       icon: <UserCog className="h-5 w-5" />,
+      externalLink: false,
     },
     {
       name: "Settings",
       path: "/ngo-dashboard/settings",
       icon: <Settings className="h-5 w-5" />,
+      externalLink: false,
     },
   ];
 
@@ -100,9 +110,42 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileNavOpen, setMobileNavOpen }) =>
         <ScrollArea className="flex-1 py-2">
           <nav className="px-2 space-y-1">
             {tabs.map((tab) => {
-              const isActive = tab.exact
+              const isActive = !tab.externalLink && (tab.exact
                 ? location.pathname === tab.path
-                : location.pathname.startsWith(tab.path);
+                : location.pathname.startsWith(tab.path));
+
+              if (tab.externalLink) {
+                return (
+                  <a 
+                    key={tab.name} 
+                    href={tab.path} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="block"
+                  >
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start",
+                        "text-gray-600 hover:bg-gray-100"
+                      )}
+                      onClick={() => {
+                        if (mobileNavOpen) {
+                          setMobileNavOpen(false);
+                        }
+                      }}
+                    >
+                      {React.cloneElement(tab.icon, {
+                        className: cn(
+                          "mr-2 h-5 w-5",
+                          "text-gray-400"
+                        ),
+                      })}
+                      {tab.name}
+                    </Button>
+                  </a>
+                );
+              }
 
               return (
                 <Link key={tab.name} to={tab.path}>
