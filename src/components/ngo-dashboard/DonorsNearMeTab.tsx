@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 
 const DonorsNearMeTab = () => {
-  const iframeUrl = "https://lovable.dev/projects/320285c7-dc63-4a44-8e29-dc96fd5e124c"; // Replace with your actual URL
+  const iframeUrl = "https://giving-compass-nearby-angels-39.lovable.app/"; // Replace with your actual URL
 
   return (
     <Card>
