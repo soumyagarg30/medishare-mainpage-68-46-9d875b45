@@ -15,7 +15,7 @@ import {
   markMessagesAsRead,
   getAvailableChatUsers,
   createConversation
-} from "@/utils/chatService";
+} from "@/utils/chat"; // Updated import path
 
 import ConversationItem from "./ConversationItem";
 import MessageItem from "./MessageItem";
