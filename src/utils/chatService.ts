@@ -1,5 +1,4 @@
-
-import { ChatUser, ChatMessage, ChatConversation } from "@/types/chat";
+import { ChatUser, ChatMessage, ChatConversation, ChatAttachment } from "@/types/chat";
 import { getUser, UserData } from "@/utils/auth";
 
 // Mock data for development - will be replaced with actual API calls

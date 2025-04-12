@@ -1,3 +1,4 @@
+
 /**
  * Authentication utilities for MediShare
  */
@@ -20,6 +21,7 @@ export interface UserData {
   verificationId?: string; // GST ID, UID, DigiLocker ID, or Admin code
   department?: string; // For admin users
   entity_id?: string; // Add entity_id property to fix TypeScript errors
+  profilePicture?: string; // Added profile picture property
 }
 
 // Local storage keys
