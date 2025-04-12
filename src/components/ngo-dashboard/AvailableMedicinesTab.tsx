@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,7 +139,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                 medicine.ingredients
               );
               
-              if (similarity >= 70 && similarity <= 80) {
+              // Changed the similarity threshold from 70-80% to 60-70%
+              if (similarity >= 60 && similarity <= 70) {
                 similar.push({
                   ...medicine,
                   similarity: Math.round(similarity)
@@ -356,7 +358,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
 
             {similarMedicines.length > 0 && (
               <div className="overflow-x-auto">
-                <h3 className="text-lg font-medium mb-2">Similar Medicines (70-80% ingredient match)</h3>
+                <h3 className="text-lg font-medium mb-2">Similar Medicines (60-70% ingredient match)</h3>
                 <p className="text-sm text-gray-500 mb-4">
                   These medicines have similar ingredients to {filteredMedicines[0]?.medicine_name}
                 </p>
