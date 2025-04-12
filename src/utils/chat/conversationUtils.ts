@@ -1,7 +1,7 @@
 
 import { ChatConversation, ChatMessage, ChatUser, ChatAttachment } from "@/types/chat";
 import { getCurrentChatUser } from "./userUtils";
-import { MOCK_CONVERSATIONS, MOCK_MESSAGES } from "./types";
+import { MOCK_CONVERSATIONS, MOCK_MESSAGES, MOCK_USERS } from "./types";
 
 // Get conversations for current user
 export const getUserConversations = (): ChatConversation[] => {
