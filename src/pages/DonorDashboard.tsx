@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -8,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getUser, UserData, isAuthenticated } from "@/utils/auth";
-import { useNavigate } from "react-router-dom";
-import { Loader2, ChevronDown, ChevronUp, UserCircle, Bell, FileText, Package, MapPin } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Loader2, ChevronDown, ChevronUp, UserCircle, Bell, FileText, Package, MapPin, MessageCircle } from "lucide-react";
 import WelcomeMessage from "@/components/WelcomeMessage";
 import DonateTab from "@/components/donor-dashboard/DonateTab";
 
@@ -278,7 +279,15 @@ const DonorDashboard = () => {
       <Navbar />
       <div className="min-h-screen pt-24 pb-16 bg-gray-50">
         <div className="container mx-auto px-4 md:px-6">
-          {user && <WelcomeMessage user={user} userTypeTitle="Donor" />}
+          <div className="flex justify-between items-center mb-6">
+            {user && <WelcomeMessage user={user} userTypeTitle="Donor" />}
+            <Link to="/chat">
+              <Button className="bg-medishare-blue hover:bg-medishare-blue/90">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Chat with NGOs
+              </Button>
+            </Link>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
