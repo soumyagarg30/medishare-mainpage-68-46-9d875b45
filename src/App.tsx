@@ -17,6 +17,7 @@ import DonorDashboard from "./pages/DonorDashboard";
 import NGODashboard from "./pages/NGODashboard";
 import RecipientDashboard from "./pages/RecipientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Chat from "./pages/Chat";
 import Chatbot from "./components/Chatbot";
 
 // Create a client
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/ngo-dashboard" element={<NGODashboard />} />
           <Route path="/recipient-dashboard" element={<RecipientDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/chat" element={<Chat />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Chatbot />
