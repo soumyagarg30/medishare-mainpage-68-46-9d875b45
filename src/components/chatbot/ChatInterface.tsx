@@ -1,11 +1,9 @@
-
 import React, { useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Send, X, Volume2, VolumeX, Globe, Settings } from "lucide-react";
+import { Mic, MicOff, Send, X, Volume2, VolumeX, Globe, Settings, Loader2 } from "lucide-react";
 import { getLocalizedText } from "@/utils/responseGenerator";
 import { ChatMessage } from "@/types/chatbot";
-import { Loader2 } from "lucide-react";
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -50,41 +48,66 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Function to format structured responses
   const formatMessage = (content: string) => {
-    // Simple Markdown-like formatting
-    if (!content.includes('###')) {
-      return <p className="whitespace-pre-wrap">{content}</p>;
-    }
-    
-    // Process structured content with headers and lists
+    const processSection = (section: string) => {
+      const lines = section.trim().split('\n').filter(Boolean);
+      
+      if (lines.length === 0) return null;
+      
+      const [title, ...contentLines] = lines;
+      
+      const formattedContent = contentLines.map((line, index) => {
+        if (line.trim().startsWith('- ')) {
+          return (
+            <li key={index} className="pl-4 list-disc ml-4">
+              {line.replace(/^-\s*/, '')}
+            </li>
+          );
+        }
+        
+        if (line.includes(':')) {
+          const [subTitle, subContent] = line.split(':');
+          return (
+            <div key={index} className="ml-4 mb-2">
+              <span className="font-semibold">{subTitle.trim()}:</span> {subContent.trim()}
+            </div>
+          );
+        }
+        
+        return <p key={index} className="mb-2">{line}</p>;
+      });
+      
+      return (
+        <div className="mb-4">
+          <h3 className="font-bold text-lg mb-2 text-medishare-blue">{title}</h3>
+          {formattedContent.length > 0 && (
+            <ul className="space-y-1">
+              {formattedContent}
+            </ul>
+          )}
+        </div>
+      );
+    };
+
     const sections = content.split('###').filter(Boolean);
     
     return (
       <div className="space-y-3">
-        {sections.map((section, index) => {
-          const [title, ...contentLines] = section.trim().split('\n').filter(Boolean);
-          const contentText = contentLines.join('\n');
-          
-          return (
-            <div key={index} className="space-y-2">
-              <h3 className="font-bold text-lg">{title}</h3>
-              <div className="whitespace-pre-wrap">{contentText}</div>
-            </div>
-          );
-        })}
+        {sections.map((section, index) => (
+          <React.Fragment key={index}>
+            {processSection(section)}
+          </React.Fragment>
+        ))}
       </div>
     );
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat header */}
       <div className="flex items-center justify-between p-4 border-b">
         <h2 className="text-lg font-semibold">{getLocalizedText("AI Health Assistant", currentLanguage)}</h2>
         <div className="flex items-center gap-2">
@@ -142,7 +165,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
       </div>
       
-      {/* Messages container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
@@ -173,7 +195,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Input area */}
       <div className="p-4 border-t">
         <div className="flex items-end gap-2">
           <Textarea
