@@ -2,9 +2,10 @@
 import React, { useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Send, X, Volume2, VolumeX, Globe } from "lucide-react";
+import { Mic, MicOff, Send, X, Volume2, VolumeX, Globe, Settings } from "lucide-react";
 import { getLocalizedText } from "@/utils/responseGenerator";
 import { ChatMessage } from "@/types/chatbot";
+import { Loader2 } from "lucide-react";
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -14,6 +15,7 @@ interface ChatInterfaceProps {
   voiceEnabled: boolean;
   currentLanguage: string;
   showLanguageMenu: boolean;
+  isLoading?: boolean;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSend: () => void;
   onToggleListening: () => void;
@@ -22,6 +24,7 @@ interface ChatInterfaceProps {
   onLanguageSelect: (lang: string) => void;
   onToggleLanguageMenu: () => void;
   onKeyPress: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onOpenApiKeyModal?: () => void;
   supportedLanguages: Record<string, string>;
 }
 
@@ -33,6 +36,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   voiceEnabled,
   currentLanguage,
   showLanguageMenu,
+  isLoading = false,
   onInputChange,
   onSend,
   onToggleListening,
@@ -41,6 +45,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onLanguageSelect,
   onToggleLanguageMenu,
   onKeyPress,
+  onOpenApiKeyModal,
   supportedLanguages
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -81,7 +86,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className="flex flex-col h-full">
       {/* Chat header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold">{getLocalizedText("AI Assistant", currentLanguage)}</h2>
+        <h2 className="text-lg font-semibold">{getLocalizedText("AI Health Assistant", currentLanguage)}</h2>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Button 
@@ -107,6 +112,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </div>
             )}
           </div>
+          {onOpenApiKeyModal && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onOpenApiKeyModal} 
+              aria-label="API Settings"
+              title="Set Gemini API Key"
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -146,6 +162,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-gray-100 text-gray-800 max-w-[80%] p-3 rounded-lg flex items-center space-x-2">
+              <Loader2 className="h-5 w-5 animate-spin text-medishare-blue" />
+              <span>Generating response...</span>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
       
@@ -159,6 +183,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             placeholder={getLocalizedText("Type your message...", currentLanguage)}
             className="resize-none"
             rows={2}
+            disabled={isLoading}
           />
           <div className="flex flex-col gap-2">
             <Button
@@ -166,19 +191,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               variant={isListening ? "destructive" : "outline"}
               size="icon"
               className="h-10 w-10"
+              disabled={isLoading}
               aria-label={isListening ? getLocalizedText("Stop listening", currentLanguage) : getLocalizedText("Start listening", currentLanguage)}
             >
               {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
             <Button
               onClick={onSend}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               variant="default"
               size="icon"
               className="bg-medishare-orange hover:bg-medishare-gold h-10 w-10"
               aria-label={getLocalizedText("Send message", currentLanguage)}
             >
-              <Send className="h-5 w-5" />
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </Button>
           </div>
         </div>

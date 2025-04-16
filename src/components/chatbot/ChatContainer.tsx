@@ -18,6 +18,7 @@ interface ChatContainerProps {
   voiceEnabled: boolean;
   currentLanguage: string;
   showLanguageMenu: boolean;
+  isLoading?: boolean;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSend: () => void;
   onToggleListening: () => void;
@@ -26,6 +27,7 @@ interface ChatContainerProps {
   onLanguageSelect: (lang: string) => void;
   onToggleLanguageMenu: () => void;
   onKeyPress: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onOpenApiKeyModal?: () => void;
   supportedLanguages: Record<string, string>;
 }
 
