@@ -28,8 +28,10 @@ export interface GeminiResponse {
   }[];
 }
 
-// API key state and management
-let geminiApiKey: string | null = null;
+// API key management - with environment variable as default
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCpaLMkUWd4Hpfh1zGmSWlMjTxFbAOequY";
+
+let geminiApiKey: string | null = GEMINI_API_KEY;
 
 export const setGeminiApiKey = (key: string) => {
   geminiApiKey = key;
@@ -38,7 +40,14 @@ export const setGeminiApiKey = (key: string) => {
 
 export const getGeminiApiKey = (): string | null => {
   if (!geminiApiKey) {
-    geminiApiKey = localStorage.getItem("gemini_api_key");
+    // Try to get from localStorage as fallback
+    const storedKey = localStorage.getItem("gemini_api_key");
+    if (storedKey) {
+      geminiApiKey = storedKey;
+    } else {
+      // Use the default environment variable key
+      geminiApiKey = GEMINI_API_KEY;
+    }
   }
   return geminiApiKey;
 };

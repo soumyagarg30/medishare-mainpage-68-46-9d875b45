@@ -41,7 +41,8 @@ const Chatbot = () => {
   // Check if Gemini API key is set on initial load
   useEffect(() => {
     const apiKey = getGeminiApiKey();
-    if (!apiKey) {
+    // Only show the modal if there's no API key either in env or localStorage
+    if (!apiKey || apiKey === "undefined" || apiKey === "null") {
       setIsApiKeyModalOpen(true);
     }
   }, []);
@@ -104,14 +105,16 @@ const Chatbot = () => {
       
       let responseContent: string;
       
-      if (apiKey) {
+      if (apiKey && apiKey !== "undefined" && apiKey !== "null") {
         // Use Gemini API for response generation
         responseContent = await generateGeminiResponse([...messages, userMessage]);
       } else {
         // Fall back to the default response generator
         responseContent = generateStructuredResponse(text, detectedLanguage);
-        // Prompt to set API key
-        setIsApiKeyModalOpen(true);
+        // Prompt to set API key only if we don't have one from env vars
+        if (!import.meta.env.VITE_GEMINI_API_KEY) {
+          setIsApiKeyModalOpen(true);
+        }
       }
       
       const aiResponse = { 
