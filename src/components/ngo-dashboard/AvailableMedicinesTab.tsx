@@ -100,19 +100,41 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
   };
 
   const calculateIngredientSimilarity = (ingredients1: string | null, ingredients2: string | null): number => {
+    // Return 0 if either ingredient list is missing
     if (!ingredients1 || !ingredients2) {
       return 0;
     }
 
+    // Split ingredients into arrays and normalize them (lowercase and trim)
     const ingredientsArray1 = ingredients1.toLowerCase().split(',').map(i => i.trim());
     const ingredientsArray2 = ingredients2.toLowerCase().split(',').map(i => i.trim());
 
-    const matchingIngredients = ingredientsArray1.filter(ingredient => 
-      ingredientsArray2.some(i => i.includes(ingredient) || ingredient.includes(i))
-    );
+    // Get unique ingredients from both lists
+    const allIngredients = new Set([...ingredientsArray1, ...ingredientsArray2]);
+    const totalUniqueIngredients = allIngredients.size;
 
-    const totalUniqueIngredients = new Set([...ingredientsArray1, ...ingredientsArray2]).size;
-    return (matchingIngredients.length / totalUniqueIngredients) * 100;
+    if (totalUniqueIngredients === 0) {
+      return 0;
+    }
+
+    // Count matching ingredients
+    let matchCount = 0;
+    for (const ingredient1 of ingredientsArray1) {
+      for (const ingredient2 of ingredientsArray2) {
+        // Check if ingredients match or are substrings of each other
+        if (ingredient1 === ingredient2 || 
+            ingredient1.includes(ingredient2) || 
+            ingredient2.includes(ingredient1)) {
+          matchCount++;
+          break; // Once we find a match for this ingredient, move to the next
+        }
+      }
+    }
+
+    // Calculate similarity as a percentage
+    // Each matching ingredient contributes to the similarity score
+    const similarity = (matchCount / ingredientsArray1.length) * 100;
+    return similarity;
   };
 
   const performSearch = () => {
@@ -139,8 +161,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                 medicine.ingredients
               );
               
-              // Changed the similarity threshold from 70-80% to 60-70%
-              if (similarity >= 60 && similarity <= 70) {
+              // Only consider medicines with at least 60% ingredient similarity
+              if (similarity >= 60) {
                 similar.push({
                   ...medicine,
                   similarity: Math.round(similarity)
@@ -149,8 +171,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
             }
           }
           
+          // Sort by similarity (highest first)
           similar.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
-          
           setSimilarMedicines(similar);
         }
       } else {
@@ -358,7 +380,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
 
             {similarMedicines.length > 0 && (
               <div className="overflow-x-auto">
-                <h3 className="text-lg font-medium mb-2">Similar Medicines (60-70% ingredient match)</h3>
+                <h3 className="text-lg font-medium mb-2">Similar Medicines (60%+ ingredient match)</h3>
                 <p className="text-sm text-gray-500 mb-4">
                   These medicines have similar ingredients to {filteredMedicines[0]?.medicine_name}
                 </p>
