@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,16 +102,13 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
   };
 
   const calculateIngredientSimilarity = (ingredients1: string | null, ingredients2: string | null): number => {
-    // Return 0 if either ingredient list is missing
     if (!ingredients1 || !ingredients2) {
       return 0;
     }
 
-    // Split ingredients into arrays and normalize them (lowercase and trim)
     const ingredientsArray1 = ingredients1.toLowerCase().split(',').map(i => i.trim());
     const ingredientsArray2 = ingredients2.toLowerCase().split(',').map(i => i.trim());
 
-    // Get unique ingredients from both lists
     const allIngredients = new Set([...ingredientsArray1, ...ingredientsArray2]);
     const totalUniqueIngredients = allIngredients.size;
 
@@ -120,22 +116,18 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
       return 0;
     }
 
-    // Count matching ingredients
     let matchCount = 0;
     for (const ingredient1 of ingredientsArray1) {
       for (const ingredient2 of ingredientsArray2) {
-        // Check if ingredients match or are substrings of each other
         if (ingredient1 === ingredient2 || 
             ingredient1.includes(ingredient2) || 
             ingredient2.includes(ingredient1)) {
           matchCount++;
-          break; // Once we find a match for this ingredient, move to the next
+          break;
         }
       }
     }
 
-    // Calculate similarity as a percentage
-    // Each matching ingredient contributes to the similarity score
     const similarity = (matchCount / ingredientsArray1.length) * 100;
     return similarity;
   };
@@ -164,7 +156,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                 medicine.ingredients
               );
               
-              // Only consider medicines with at least 60% ingredient similarity
               if (similarity >= 60) {
                 similar.push({
                   ...medicine,
@@ -174,7 +165,6 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
             }
           }
           
-          // Sort by similarity (highest first)
           similar.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
           setSimilarMedicines(similar);
         }
@@ -319,7 +309,7 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
               </span>
             </TableCell>
             <TableCell>
-              <div className="flex space-x-2">
+              <div className="flex flex-col md:flex-row gap-2">
                 <Button 
                   size="sm" 
                   className="bg-medishare-blue hover:bg-medishare-blue/90"
@@ -335,11 +325,11 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
                 </Button>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => handleViewImage(medicine)}
                   disabled={!medicine.image_url}
                   title={medicine.image_url ? "View medicine image" : "No image available"}
-                  className="border-gray-300 hover:bg-gray-100"
+                  className={`${!medicine.image_url ? 'opacity-50' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
                 >
                   <Image className="h-4 w-4 mr-1" />
                   View Image
