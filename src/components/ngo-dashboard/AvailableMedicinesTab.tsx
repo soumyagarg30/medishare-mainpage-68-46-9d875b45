@@ -14,7 +14,8 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Check, Search } from "lucide-react";
+import { Check, Search, Image } from "lucide-react";
+import MedicineImageView from "./MedicineImageView";
 
 interface DonatedMedicine {
   id: string;
@@ -43,6 +44,8 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
   const [filteredMedicines, setFilteredMedicines] = useState<DonatedMedicine[]>([]);
   const [similarMedicines, setSimilarMedicines] = useState<DonatedMedicine[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [viewingImage, setViewingImage] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<DonatedMedicine | null>(null);
 
   useEffect(() => {
     fetchMedicines();
@@ -257,6 +260,11 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
     }
   };
 
+  const handleViewImage = (medicine: DonatedMedicine) => {
+    setSelectedMedicine(medicine);
+    setViewingImage(true);
+  };
+
   const renderMedicineTable = (medicines: DonatedMedicine[], showSimilarity = false, isSimilarMedicines = false) => (
     <Table>
       <TableHeader>
@@ -311,19 +319,32 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
               </span>
             </TableCell>
             <TableCell>
-              <Button 
-                size="sm" 
-                className="bg-medishare-blue hover:bg-medishare-blue/90"
-                onClick={() => handleAcceptMedicine(medicine.id)}
-                disabled={acceptingIds.has(medicine.id) || medicine.status === 'rejected'}
-              >
-                {acceptingIds.has(medicine.id) ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
-                ) : (
-                  <Check className="h-4 w-4 mr-1" />
-                )}
-                Accept
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  size="sm" 
+                  className="bg-medishare-blue hover:bg-medishare-blue/90"
+                  onClick={() => handleAcceptMedicine(medicine.id)}
+                  disabled={acceptingIds.has(medicine.id) || medicine.status === 'rejected'}
+                >
+                  {acceptingIds.has(medicine.id) ? (
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1" />
+                  ) : (
+                    <Check className="h-4 w-4 mr-1" />
+                  )}
+                  Accept
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleViewImage(medicine)}
+                  disabled={!medicine.image_url}
+                  title={medicine.image_url ? "View medicine image" : "No image available"}
+                  className="border-gray-300 hover:bg-gray-100"
+                >
+                  <Image className="h-4 w-4 mr-1" />
+                  View Image
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         ))}
@@ -337,6 +358,14 @@ const AvailableMedicinesTab = ({ ngoEntityId }: AvailableMedicinesTabProps) => {
         <CardTitle>Available Medicines</CardTitle>
       </CardHeader>
       <CardContent>
+        {selectedMedicine && (
+          <MedicineImageView
+            isOpen={viewingImage}
+            onClose={() => setViewingImage(false)}
+            imageUrl={selectedMedicine.image_url}
+            medicineName={selectedMedicine.medicine_name}
+          />
+        )}
         <div className="mb-6">
           <div className="flex items-center gap-3 max-w-md">
             <div className="relative flex-1">
